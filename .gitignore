@@ -26,12 +26,6 @@ out/
 !**/src/main/**/out/
 !**/src/test/**/out/
 
-# 환경별 민감 설정
-application.yaml
-application-local.yaml
-application-secret.yaml
-.env
-
 ### NetBeans ###
 /nbproject/private/
 /nbbuild/
@@ -41,3 +35,11 @@ application-secret.yaml
 
 ### VS Code ###
 .vscode/
+
+# 환경별 민감 설정 (application.yaml은 env var 사용으로 추적 허용)
+application-local.yaml
+application-secret.yaml
+.env
+
+# 업로드 디렉토리
+uploads/
