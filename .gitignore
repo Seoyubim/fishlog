@@ -26,6 +26,11 @@ out/
 !**/src/main/**/out/
 !**/src/test/**/out/
 
+# 환경별 민감 설정
+application-local.yml
+application-secret.yml
+.env
+
 ### NetBeans ###
 /nbproject/private/
 /nbbuild/
