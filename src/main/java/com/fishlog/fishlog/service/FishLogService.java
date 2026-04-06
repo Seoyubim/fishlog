@@ -13,6 +13,7 @@ import com.fishlog.fishlog.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,8 +27,9 @@ public class FishLogService {
 
     @Transactional
     public FishLogDetailResponse create(FishLogCreateRequest request) {
-        User user = userRepository.findById(request.userId())
-                .orElseThrow(() -> new UserNotFoundException(request.userId()));
+        Long userId = getCurrentUserId();
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException(userId));
 
         FishLog fishLog = FishLog.builder()
                 .user(user)
@@ -47,7 +49,8 @@ public class FishLogService {
         return FishLogDetailResponse.from(fishLogRepository.save(fishLog));
     }
 
-    public Page<FishLogResponse> getList(Long userId, Pageable pageable) {
+    public Page<FishLogResponse> getList(Pageable pageable) {
+        Long userId = getCurrentUserId();
         return fishLogRepository.findAllByUserIdOrderByCreatedAtDesc(userId, pageable)
                 .map(FishLogResponse::from);
     }
@@ -86,5 +89,9 @@ public class FishLogService {
             throw new FishLogNotFoundException(id);
         }
         fishLogRepository.deleteById(id);
+    }
+
+    private Long getCurrentUserId() {
+        return (Long) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }
 }
