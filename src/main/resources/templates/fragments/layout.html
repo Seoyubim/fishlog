@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+
+<!-- ────────────────────── HEAD FRAGMENT ────────────────────── -->
+<head th:fragment="headSection(pageTitle)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#134e4a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title th:text="${pageTitle} + ' | FishLog 🎣'">FishLog</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Noto Sans KR', 'sans-serif'] },
+                    colors: {
+                        ocean: {
+                            50:  '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="/js/api.js"></script>
+    <style>
+        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+        body { font-family: 'Noto Sans KR', sans-serif; background: #f8fafc; }
+        .page-enter { animation: fadeSlideUp .3s ease; }
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .card-tap { transition: transform .1s; }
+        .card-tap:active { transform: scale(0.97); }
+        input, button, select, textarea { font-family: inherit; }
+        /* Safe area for iPhone home bar */
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+    </style>
+</head>
+
+<!-- ────────────────────── BOTTOM NAV FRAGMENT ────────────────────── -->
+<body>
+<th:block th:fragment="bottomNav">
+    <nav id="bottomNav"
+         class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 pb-safe shadow-[0_-2px_12px_rgba(0,0,0,0.08)]">
+        <div class="max-w-lg mx-auto grid grid-cols-4 h-16">
+
+            <a href="/logs" data-page="logs"
+               class="nav-link flex flex-col items-center justify-center gap-0.5 text-gray-400">
+                <span class="text-[1.6rem] leading-none">📋</span>
+                <span class="text-[0.68rem] font-bold">기록</span>
+            </a>
+
+            <a href="/logs/new" data-page="create"
+               class="nav-link flex flex-col items-center justify-center gap-0.5 text-gray-400">
+                <div class="w-11 h-11 bg-ocean-700 rounded-full flex items-center justify-center -mt-4 shadow-lg shadow-teal-800/30">
+                    <span class="text-white text-3xl font-thin leading-none" style="margin-top:-2px">+</span>
+                </div>
+                <span class="text-[0.68rem] font-bold mt-0.5">새 기록</span>
+            </a>
+
+            <a href="/stats" data-page="stats"
+               class="nav-link flex flex-col items-center justify-center gap-0.5 text-gray-400">
+                <span class="text-[1.6rem] leading-none">📊</span>
+                <span class="text-[0.68rem] font-bold">통계</span>
+            </a>
+
+            <button onclick="logout()"
+                    class="flex flex-col items-center justify-center gap-0.5 w-full text-gray-400">
+                <span class="text-[1.6rem] leading-none">🚪</span>
+                <span class="text-[0.68rem] font-bold">로그아웃</span>
+            </button>
+
+        </div>
+    </nav>
+    <script>
+        (function () {
+            const path = window.location.pathname;
+            document.querySelectorAll('#bottomNav .nav-link').forEach(link => {
+                const page = link.dataset.page;
+                const active =
+                    (page === 'logs'   && (path === '/logs' || path === '/')) ||
+                    (page === 'create' && path === '/logs/new') ||
+                    (page === 'stats'  && path.startsWith('/stats'));
+                if (active) {
+                    link.classList.remove('text-gray-400');
+                    link.classList.add('text-ocean-700');
+                }
+            });
+        })();
+    </script>
+</th:block>
+</body>
+</html>

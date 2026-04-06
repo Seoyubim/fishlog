@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head th:replace="~{fragments/layout :: headSection('회원가입')}"></head>
+<body class="min-h-screen flex items-center justify-center p-4 py-8"
+      style="background: linear-gradient(145deg, #0d4f4a 0%, #115e59 40%, #0c4a6e 100%);">
+
+<div class="w-full max-w-sm page-enter">
+
+    <!-- 로고 -->
+    <div class="text-center mb-6">
+        <div class="text-6xl mb-2">🎣</div>
+        <h1 class="text-3xl font-black text-white">FishLog</h1>
+        <p class="text-teal-200 mt-1 text-sm font-medium">낚시 기록의 시작</p>
+    </div>
+
+    <!-- 카드 -->
+    <div class="bg-white rounded-3xl shadow-2xl p-7">
+        <h2 class="text-2xl font-black text-gray-900 mb-6">회원가입</h2>
+
+        <form id="signupForm" class="space-y-4">
+
+            <div>
+                <label class="block text-base font-bold text-gray-700 mb-2">
+                    아이디 <span class="text-red-500">*</span>
+                </label>
+                <input id="username" type="text" placeholder="영문+숫자, 3~50자"
+                       autocomplete="username"
+                       class="w-full py-4 px-4 rounded-xl border-2 border-gray-200 text-lg
+                              focus:border-ocean-600 focus:outline-none transition-colors">
+            </div>
+
+            <div>
+                <label class="block text-base font-bold text-gray-700 mb-2">
+                    이메일 <span class="text-red-500">*</span>
+                </label>
+                <input id="email" type="email" placeholder="example@email.com"
+                       autocomplete="email"
+                       class="w-full py-4 px-4 rounded-xl border-2 border-gray-200 text-lg
+                              focus:border-ocean-600 focus:outline-none transition-colors">
+            </div>
+
+            <div>
+                <label class="block text-base font-bold text-gray-700 mb-2">
+                    비밀번호 <span class="text-red-500">*</span>
+                </label>
+                <input id="password" type="password" placeholder="8자 이상"
+                       autocomplete="new-password"
+                       class="w-full py-4 px-4 rounded-xl border-2 border-gray-200 text-lg
+                              focus:border-ocean-600 focus:outline-none transition-colors">
+            </div>
+
+            <div>
+                <label class="block text-base font-bold text-gray-700 mb-2">
+                    비밀번호 확인 <span class="text-red-500">*</span>
+                </label>
+                <input id="passwordConfirm" type="password" placeholder="비밀번호를 한 번 더 입력하세요"
+                       autocomplete="new-password"
+                       class="w-full py-4 px-4 rounded-xl border-2 border-gray-200 text-lg
+                              focus:border-ocean-600 focus:outline-none transition-colors">
+            </div>
+
+            <!-- 에러/성공 메시지 -->
+            <div id="errorMsg"
+                 class="hidden py-3 px-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-base font-medium">
+            </div>
+
+            <!-- 가입 버튼 -->
+            <button type="submit" id="signupBtn"
+                    class="w-full py-4 bg-ocean-700 hover:bg-ocean-800 active:bg-ocean-900
+                           text-white text-xl font-black rounded-2xl transition-colors
+                           flex items-center justify-center gap-2 shadow-lg shadow-teal-800/20">
+                <span id="btnText">✅ 가입 완료</span>
+                <span id="btnSpinner" class="hidden">⏳ 가입 중...</span>
+            </button>
+        </form>
+
+        <!-- 로그인 링크 -->
+        <div class="mt-6 pt-6 border-t border-gray-100 text-center">
+            <span class="text-gray-500 text-base">이미 계정이 있으신가요?</span>
+            <a href="/login"
+               class="ml-2 text-ocean-700 font-black text-base hover:underline">로그인 →</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    if (Auth.isLoggedIn()) window.location.href = '/logs';
+
+    document.getElementById('signupForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const username        = document.getElementById('username').value.trim();
+        const email           = document.getElementById('email').value.trim();
+        const password        = document.getElementById('password').value;
+        const passwordConfirm = document.getElementById('passwordConfirm').value;
+
+        // 클라이언트 유효성 검사
+        if (!username || !email || !password || !passwordConfirm) {
+            showError('모든 항목을 입력해 주세요.'); return;
+        }
+        if (password.length < 8) {
+            showError('비밀번호는 8자 이상이어야 합니다.'); return;
+        }
+        if (password !== passwordConfirm) {
+            showError('비밀번호가 일치하지 않습니다.'); return;
+        }
+
+        setLoading(true);
+
+        try {
+            const res = await fetch('/api/v1/auth/signup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, email, password })
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                showError(data.message || '회원가입에 실패했습니다.'); return;
+            }
+
+            Auth.save(data.accessToken, data.userId, data.username);
+            showToast('🎉 회원가입 완료! 환영합니다!');
+            setTimeout(() => window.location.href = '/logs', 800);
+
+        } catch (err) {
+            showError('서버 연결에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+        } finally {
+            setLoading(false);
+        }
+    });
+
+    function setLoading(on) {
+        const btn = document.getElementById('signupBtn');
+        document.getElementById('btnText').classList.toggle('hidden', on);
+        document.getElementById('btnSpinner').classList.toggle('hidden', !on);
+        btn.disabled = on;
+    }
+
+    function showError(msg) {
+        const el = document.getElementById('errorMsg');
+        el.textContent = '⚠️ ' + msg;
+        el.classList.remove('hidden');
+    }
+</script>
+</body>
+</html>

@@ -1,5 +1,6 @@
 package com.fishlog.fishlog.domain;
 
+import com.fishlog.fishlog.domain.enums.UserRole;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -26,6 +27,13 @@ public class User {
     @Column(nullable = false, unique = true, length = 100)
     private String email;
 
+    @Column(nullable = false)
+    private String password;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private UserRole role;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -33,9 +41,11 @@ public class User {
     private List<FishLog> fishLogs = new ArrayList<>();
 
     @Builder
-    public User(String username, String email) {
+    public User(String username, String email, String password, UserRole role) {
         this.username = username;
         this.email = email;
+        this.password = password;
+        this.role = role;
         this.createdAt = LocalDateTime.now();
     }
 }

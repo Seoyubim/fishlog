@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head th:replace="~{fragments/layout :: headSection('낚시 통계')}">
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+<!-- ── 헤더 ─────────────────────────────────────────── -->
+<header class="fixed top-0 left-0 right-0 z-40"
+        style="background: linear-gradient(135deg, #115e59 0%, #0c4a6e 100%);">
+    <div class="max-w-lg mx-auto px-4 h-16 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            <span class="text-2xl">📊</span>
+            <h1 class="text-xl font-black text-white">낚시 통계</h1>
+        </div>
+        <!-- 연도 선택 -->
+        <select id="yearSelect"
+                class="bg-white/20 text-white font-bold rounded-xl px-3 py-2 text-base
+                       border border-white/30 focus:outline-none appearance-none">
+        </select>
+    </div>
+</header>
+
+<!-- ── 컨텐츠 ─────────────────────────────────────────── -->
+<main class="max-w-lg mx-auto px-4 pt-20 pb-28">
+
+    <!-- 로딩 -->
+    <div id="loading" class="space-y-4 mt-4">
+        <div class="bg-gray-200 rounded-2xl h-32 animate-pulse"></div>
+        <div class="bg-gray-200 rounded-2xl h-64 animate-pulse"></div>
+        <div class="bg-gray-200 rounded-2xl h-48 animate-pulse"></div>
+    </div>
+
+    <!-- 데이터 없음 -->
+    <div id="emptyState" class="hidden text-center py-20">
+        <div class="text-7xl mb-4">📊</div>
+        <h3 class="text-xl font-black text-gray-600 mb-2">아직 기록이 없어요</h3>
+        <p class="text-gray-400 mb-6">낚시 기록을 추가하면 통계가 여기에 표시됩니다!</p>
+        <a href="/logs/new"
+           class="inline-flex items-center gap-2 bg-ocean-700 text-white px-8 py-4 rounded-2xl font-black text-lg shadow-lg">
+            🎣 첫 기록 추가하기
+        </a>
+    </div>
+
+    <!-- 통계 본문 -->
+    <div id="statsContent" class="hidden page-enter space-y-5 mt-2">
+
+        <!-- ① 요약 숫자 카드 -->
+        <div class="grid grid-cols-2 gap-3">
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 text-center">
+                <p class="text-sm font-bold text-gray-400">올해 총 포획</p>
+                <p id="totalCount" class="text-5xl font-black text-ocean-800 mt-1"></p>
+                <p class="text-base text-gray-500 font-medium mt-1">마리</p>
+            </div>
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 text-center">
+                <p class="text-sm font-bold text-gray-400">최대 어체장</p>
+                <p id="maxLength" class="text-5xl font-black text-ocean-800 mt-1"></p>
+                <p class="text-base text-gray-500 font-medium mt-1">cm</p>
+            </div>
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 text-center col-span-2">
+                <p class="text-sm font-bold text-gray-400">평균 어체장</p>
+                <p id="avgLength" class="text-4xl font-black text-teal-600 mt-1"></p>
+                <p class="text-base text-gray-500 font-medium mt-1">cm</p>
+            </div>
+        </div>
+
+        <!-- ② 월별 포획 차트 -->
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+            <h3 class="text-lg font-black text-gray-800 mb-4">📅 월별 포획 마릿수</h3>
+            <div class="relative" style="height: 220px;">
+                <canvas id="monthlyChart"></canvas>
+            </div>
+        </div>
+
+        <!-- ③ 어종 순위 차트 -->
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+            <h3 class="text-lg font-black text-gray-800 mb-4">🏆 어종별 포획 순위</h3>
+            <div id="fishRankEmpty" class="hidden text-center text-gray-400 py-8">어종 기록이 없습니다</div>
+            <div class="relative" style="height: 240px;">
+                <canvas id="fishRankChart"></canvas>
+            </div>
+        </div>
+
+        <!-- ④ 수계 비율 차트 -->
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+            <h3 class="text-lg font-black text-gray-800 mb-4">💧 민물 vs 바다</h3>
+            <div id="waterTypeEmpty" class="hidden text-center text-gray-400 py-8">수계 기록이 없습니다</div>
+            <div class="flex items-center gap-4">
+                <div class="relative flex-shrink-0" style="width:160px; height:160px;">
+                    <canvas id="waterTypeChart"></canvas>
+                </div>
+                <div id="waterTypeLegend" class="flex flex-col gap-3 flex-1"></div>
+            </div>
+        </div>
+
+    </div>
+</main>
+
+<th:block th:replace="~{fragments/layout :: bottomNav}"></th:block>
+
+<script>
+    let monthlyChartInstance  = null;
+    let fishRankChartInstance = null;
+    let waterTypeChartInstance = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        if (!requireAuth()) return;
+
+        // 연도 선택 옵션
+        const currentYear = new Date().getFullYear();
+        const yearSelect  = document.getElementById('yearSelect');
+        for (let y = currentYear; y >= currentYear - 4; y--) {
+            const opt = document.createElement('option');
+            opt.value = y;
+            opt.textContent = y + '년';
+            yearSelect.appendChild(opt);
+        }
+        yearSelect.value = currentYear;
+
+        await loadStats(currentYear);
+
+        yearSelect.addEventListener('change', () => loadStats(parseInt(yearSelect.value)));
+    });
+
+    async function loadStats(year) {
+        document.getElementById('loading').classList.remove('hidden');
+        document.getElementById('statsContent').classList.add('hidden');
+        document.getElementById('emptyState').classList.add('hidden');
+
+        const res = await apiFetch(`/stats/annual?year=${year}`);
+        if (!res) return;
+
+        const data = await res.json();
+
+        document.getElementById('loading').classList.add('hidden');
+
+        if (data.totalCount === 0) {
+            document.getElementById('emptyState').classList.remove('hidden');
+            return;
+        }
+
+        document.getElementById('statsContent').classList.remove('hidden');
+        renderStats(data);
+    }
+
+    function renderStats(data) {
+        // ① 요약 숫자
+        document.getElementById('totalCount').textContent = data.totalCount;
+        document.getElementById('maxLength').textContent  = data.maxLengthCm  ?? '-';
+        document.getElementById('avgLength').textContent  = data.avgLengthCm  ?? '-';
+
+        // ② 월별 차트
+        renderMonthlyChart(data.monthlyCounts);
+
+        // ③ 어종 순위
+        renderFishRankChart(data.fishRanking);
+
+        // ④ 수계 비율
+        renderWaterTypeChart(data.waterTypeStats);
+    }
+
+    /* ── 월별 막대 차트 ─── */
+    function renderMonthlyChart(monthlyCounts) {
+        const labels = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+        const counts = new Array(12).fill(0);
+        (monthlyCounts || []).forEach(m => { counts[m.month - 1] = m.count; });
+
+        if (monthlyChartInstance) monthlyChartInstance.destroy();
+        monthlyChartInstance = new Chart(document.getElementById('monthlyChart'), {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [{
+                    label: '포획 마릿수',
+                    data: counts,
+                    backgroundColor: counts.map(c =>
+                        c === Math.max(...counts) ? '#0f766e' : '#99f6e4'),
+                    borderRadius: 8,
+                    borderSkipped: false,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => `${ctx.parsed.y}마리`
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { size: 11, weight: 'bold', family: 'Noto Sans KR' } }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1,
+                            font: { size: 12, weight: 'bold', family: 'Noto Sans KR' }
+                        },
+                        grid: { color: '#f1f5f9' }
+                    }
+                }
+            }
+        });
+    }
+
+    /* ── 어종 순위 가로 막대 ─── */
+    function renderFishRankChart(fishRanking) {
+        if (!fishRanking || fishRanking.length === 0) {
+            document.getElementById('fishRankEmpty').classList.remove('hidden');
+            document.getElementById('fishRankChart').style.display = 'none';
+            return;
+        }
+
+        const top = fishRanking.slice(0, 8);
+        const palette = ['#0f766e','#0d9488','#14b8a6','#2dd4bf','#5eead4',
+                         '#99f6e4','#ccfbf1','#a5f3fc'];
+
+        if (fishRankChartInstance) fishRankChartInstance.destroy();
+        fishRankChartInstance = new Chart(document.getElementById('fishRankChart'), {
+            type: 'bar',
+            data: {
+                labels: top.map(f => f.fishName),
+                datasets: [{
+                    data: top.map(f => f.count),
+                    backgroundColor: palette.slice(0, top.length),
+                    borderRadius: 6,
+                    borderSkipped: false,
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: { label: ctx => `${ctx.parsed.x}마리` }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1,
+                            font: { size: 11, weight: 'bold', family: 'Noto Sans KR' }
+                        },
+                        grid: { color: '#f1f5f9' }
+                    },
+                    y: {
+                        grid: { display: false },
+                        ticks: { font: { size: 13, weight: 'bold', family: 'Noto Sans KR' } }
+                    }
+                }
+            }
+        });
+    }
+
+    /* ── 수계 도넛 차트 ─── */
+    function renderWaterTypeChart(waterTypeStats) {
+        if (!waterTypeStats || waterTypeStats.length === 0) {
+            document.getElementById('waterTypeEmpty').classList.remove('hidden');
+            document.getElementById('waterTypeChart').style.display = 'none';
+            return;
+        }
+
+        const WATER_LABEL = { FRESHWATER: '🏞️ 민물', SEA: '🌊 바다' };
+        const WATER_COLOR = { FRESHWATER: '#0d9488', SEA: '#0369a1' };
+
+        const labels = waterTypeStats.map(w => WATER_LABEL[w.waterType] || w.waterType);
+        const counts = waterTypeStats.map(w => w.count);
+        const colors = waterTypeStats.map(w => WATER_COLOR[w.waterType] || '#94a3b8');
+        const total  = counts.reduce((a, b) => a + b, 0);
+
+        if (waterTypeChartInstance) waterTypeChartInstance.destroy();
+        waterTypeChartInstance = new Chart(document.getElementById('waterTypeChart'), {
+            type: 'doughnut',
+            data: {
+                labels,
+                datasets: [{
+                    data: counts,
+                    backgroundColor: colors,
+                    borderWidth: 0,
+                    hoverOffset: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '65%',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => `${ctx.parsed}마리 (${Math.round(ctx.parsed / total * 100)}%)`
+                        }
+                    }
+                }
+            }
+        });
+
+        // 범례
+        const legend = document.getElementById('waterTypeLegend');
+        legend.innerHTML = waterTypeStats.map((w, i) => `
+            <div class="flex items-center gap-3">
+                <div class="w-4 h-4 rounded-full flex-shrink-0" style="background:${colors[i]}"></div>
+                <div>
+                    <p class="text-base font-black text-gray-800">${labels[i]}</p>
+                    <p class="text-sm text-gray-500">${counts[i]}마리 · ${Math.round(counts[i] / total * 100)}%</p>
+                </div>
+            </div>
+        `).join('');
+    }
+</script>
+</body>
+</html>
