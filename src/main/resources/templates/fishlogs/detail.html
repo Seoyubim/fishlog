@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head th:replace="~{fragments/layout :: headSection('낚시 기록 상세')}"></head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- Thymeleaf로 logId 전달 -->
+<div id="appData" th:data-log-id="${logId}" style="display:none"></div>
+
+<!-- ── 헤더 ─────────────────────────────────────────── -->
+<header class="fixed top-0 left-0 right-0 z-40"
+        style="background: linear-gradient(135deg, #115e59 0%, #0c4a6e 100%);">
+    <div class="max-w-lg mx-auto px-4 h-16 flex items-center justify-between">
+        <a href="/logs" class="text-white text-2xl font-bold leading-none">‹</a>
+        <h1 class="text-xl font-black text-white">낚시 기록 상세</h1>
+        <button id="deleteBtn"
+                class="text-red-300 text-sm font-bold py-1.5 px-3 rounded-xl bg-white/10 active:bg-white/20">
+            삭제
+        </button>
+    </div>
+</header>
+
+<!-- ── 컨텐츠 ─────────────────────────────────────────── -->
+<main class="max-w-lg mx-auto pt-16 pb-28">
+
+    <!-- 로딩 -->
+    <div id="loading" class="px-4 pt-4 space-y-4">
+        <div class="bg-gray-200 rounded-2xl h-56 animate-pulse"></div>
+        <div class="bg-white rounded-2xl h-48 animate-pulse"></div>
+    </div>
+
+    <!-- 본문 -->
+    <div id="content" class="hidden page-enter">
+
+        <!-- 사진 갤러리 -->
+        <div id="photoSection">
+            <!-- 사진 있을 때 -->
+            <div id="photoGallery" class="hidden">
+                <div class="relative">
+                    <img id="mainPhoto" src="" alt="낚시 사진"
+                         class="w-full h-64 object-cover">
+                    <!-- AI 배지 -->
+                    <div id="aiBadge"
+                         class="hidden absolute bottom-3 left-3 bg-black/60 backdrop-blur-sm
+                                text-white px-3 py-2 rounded-xl">
+                        <p class="text-xs text-teal-300 font-bold">🤖 AI 분석</p>
+                        <p id="aiBadgeName" class="text-base font-black"></p>
+                        <p id="aiBadgeConf" class="text-xs text-gray-300"></p>
+                    </div>
+                </div>
+                <!-- 썸네일 목록 -->
+                <div id="photoThumbs" class="flex gap-2 px-4 py-3 overflow-x-auto"></div>
+            </div>
+
+            <!-- 사진 없을 때 -->
+            <div id="noPhotoSection" class="hidden px-4 pt-4">
+                <div class="w-full h-36 bg-ocean-50 rounded-2xl border-2 border-dashed border-ocean-200
+                            flex flex-col items-center justify-center gap-2">
+                    <span class="text-4xl">📷</span>
+                    <button id="addPhotoBtn"
+                            class="text-ocean-700 font-black text-base">
+                        📸 사진 업로드하기
+                    </button>
+                    <input id="addPhotoInput" type="file" accept="image/*" class="hidden">
+                </div>
+            </div>
+        </div>
+
+        <!-- 기록 정보 -->
+        <div class="px-4 mt-4 space-y-4">
+
+            <!-- 제목 & 어종 -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                <h2 id="logTitle" class="text-2xl font-black text-gray-900 mb-2"></h2>
+
+                <!-- AI 어종 -->
+                <div id="aiNameSection" class="hidden mb-3 flex items-center gap-2">
+                    <span class="bg-ocean-100 text-ocean-800 text-sm font-black px-3 py-1 rounded-full">🤖 AI 분석</span>
+                    <span id="fishNameAi" class="text-xl font-black text-ocean-900"></span>
+                </div>
+                <!-- 사용자 입력 어종 -->
+                <div id="userNameSection" class="hidden flex items-center gap-2">
+                    <span class="bg-gray-100 text-gray-600 text-sm font-bold px-3 py-1 rounded-full">직접 입력</span>
+                    <span id="fishNameUser" class="text-xl font-bold text-gray-700"></span>
+                </div>
+            </div>
+
+            <!-- 상세 정보 그리드 -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                <h3 class="text-base font-black text-gray-500 mb-4 uppercase tracking-wide">상세 정보</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div id="info_catchDate" class="detail-item hidden">
+                        <p class="text-sm text-gray-400 font-medium">📅 낚시 날짜</p>
+                        <p class="text-lg font-bold text-gray-800 mt-0.5" data-key="catchDate"></p>
+                    </div>
+                    <div id="info_location" class="detail-item hidden">
+                        <p class="text-sm text-gray-400 font-medium">📍 낚시 장소</p>
+                        <p class="text-lg font-bold text-gray-800 mt-0.5" data-key="location"></p>
+                    </div>
+                    <div id="info_waterType" class="detail-item hidden">
+                        <p class="text-sm text-gray-400 font-medium">💧 수계</p>
+                        <p class="text-lg font-bold text-gray-800 mt-0.5" data-key="waterType"></p>
+                    </div>
+                    <div id="info_weather" class="detail-item hidden">
+                        <p class="text-sm text-gray-400 font-medium">🌤️ 날씨</p>
+                        <p class="text-lg font-bold text-gray-800 mt-0.5" data-key="weather"></p>
+                    </div>
+                    <div id="info_lengthCm" class="detail-item hidden">
+                        <p class="text-sm text-gray-400 font-medium">📏 어체장</p>
+                        <p class="text-lg font-bold text-gray-800 mt-0.5" data-key="lengthCm"></p>
+                    </div>
+                    <div id="info_weightG" class="detail-item hidden">
+                        <p class="text-sm text-gray-400 font-medium">⚖️ 무게</p>
+                        <p class="text-lg font-bold text-gray-800 mt-0.5" data-key="weightG"></p>
+                    </div>
+                    <div id="info_bait" class="detail-item hidden">
+                        <p class="text-sm text-gray-400 font-medium">🪱 미끼</p>
+                        <p class="text-lg font-bold text-gray-800 mt-0.5" data-key="bait"></p>
+                    </div>
+                    <div id="info_temperature" class="detail-item hidden">
+                        <p class="text-sm text-gray-400 font-medium">🌡️ 기온</p>
+                        <p class="text-lg font-bold text-gray-800 mt-0.5" data-key="temperature"></p>
+                    </div>
+                </div>
+
+                <!-- 메모 -->
+                <div id="info_memo" class="hidden mt-4 pt-4 border-t border-gray-100">
+                    <p class="text-sm text-gray-400 font-medium mb-2">📝 메모</p>
+                    <p id="memoContent" class="text-base text-gray-700 leading-relaxed"></p>
+                </div>
+            </div>
+
+            <!-- 추가 사진 업로드 (사진 있을 때) -->
+            <div id="addMorePhotoSection" class="hidden">
+                <label class="flex items-center justify-center gap-2 w-full py-4
+                              bg-white rounded-2xl border-2 border-dashed border-gray-300
+                              text-gray-500 font-bold text-base cursor-pointer active:bg-gray-50">
+                    <span class="text-xl">📷</span> 사진 추가하기
+                    <input id="addMorePhotoInput" type="file" accept="image/*" class="hidden">
+                </label>
+            </div>
+
+        </div>
+    </div>
+</main>
+
+<th:block th:replace="~{fragments/layout :: bottomNav}"></th:block>
+
+<script>
+    const LOG_ID = document.getElementById('appData').dataset.logId;
+    let logData = null;
+    let photos  = [];
+
+    const WATER_TYPE_MAP = { FRESHWATER: '🏞️ 민물', SEA: '🌊 바다' };
+    const WEATHER_MAP    = { SUNNY: '☀️ 맑음', CLOUDY: '☁️ 흐림', RAINY: '🌧️ 비', WINDY: '💨 바람' };
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        if (!requireAuth()) return;
+        await loadDetail();
+    });
+
+    async function loadDetail() {
+        const [logRes, photoRes] = await Promise.all([
+            apiFetch(`/fish-logs/${LOG_ID}`),
+            apiFetch(`/fish-logs/${LOG_ID}/photos`)
+        ]);
+
+        if (!logRes || !photoRes) return;
+
+        logData = await logRes.json();
+        photos  = await photoRes.json();
+
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('content').classList.remove('hidden');
+
+        renderDetail(logData, photos);
+    }
+
+    function renderDetail(log, photoList) {
+        // 제목
+        document.getElementById('logTitle').textContent = log.title;
+
+        // 어종
+        if (log.fishNameAi) {
+            document.getElementById('aiNameSection').classList.remove('hidden');
+            document.getElementById('fishNameAi').textContent = log.fishNameAi;
+        }
+        if (log.fishName) {
+            document.getElementById('userNameSection').classList.remove('hidden');
+            document.getElementById('fishNameUser').textContent = log.fishName;
+        }
+
+        // 상세 정보
+        setInfo('catchDate',   formatDate(log.catchDate));
+        setInfo('location',    log.location);
+        setInfo('waterType',   log.waterType ? WATER_TYPE_MAP[log.waterType] : null);
+        setInfo('weather',     log.weather ? WEATHER_MAP[log.weather] : null);
+        setInfo('lengthCm',    log.lengthCm ? log.lengthCm + ' cm' : null);
+        setInfo('weightG',     log.weightG  ? log.weightG  + ' g'  : null);
+        setInfo('bait',        log.bait);
+        setInfo('temperature', log.temperature != null ? log.temperature + ' ℃' : null);
+
+        if (log.memo) {
+            document.getElementById('memoContent').textContent = log.memo;
+            document.getElementById('info_memo').classList.remove('hidden');
+        }
+
+        // 사진
+        if (photoList.length > 0) {
+            renderPhotos(photoList);
+            document.getElementById('addMorePhotoSection').classList.remove('hidden');
+        } else {
+            document.getElementById('noPhotoSection').classList.remove('hidden');
+        }
+    }
+
+    function setInfo(key, value) {
+        if (!value) return;
+        const el = document.getElementById('info_' + key);
+        if (!el) return;
+        el.classList.remove('hidden');
+        el.querySelector('[data-key]').textContent = value;
+    }
+
+    function renderPhotos(photoList) {
+        const gallery = document.getElementById('photoGallery');
+        gallery.classList.remove('hidden');
+
+        const mainPhoto = photoList[0];
+        document.getElementById('mainPhoto').src = mainPhoto.photoUrl;
+
+        // AI 배지
+        if (logData.fishNameAi) {
+            const conf = mainPhoto.aiConfidence
+                ? Math.round(mainPhoto.aiConfidence * 100) + '% 확률'
+                : '';
+            document.getElementById('aiBadgeName').textContent = logData.fishNameAi;
+            document.getElementById('aiBadgeConf').textContent = conf;
+            document.getElementById('aiBadge').classList.remove('hidden');
+        }
+
+        // 썸네일 목록
+        if (photoList.length > 1) {
+            const thumbsEl = document.getElementById('photoThumbs');
+            thumbsEl.innerHTML = photoList.map((p, i) => `
+                <img src="${escapeHtml(p.photoUrl)}" alt="사진 ${i + 1}"
+                     onclick="document.getElementById('mainPhoto').src='${escapeHtml(p.photoUrl)}'"
+                     class="w-16 h-16 object-cover rounded-xl flex-shrink-0 cursor-pointer
+                            border-2 ${i === 0 ? 'border-ocean-500' : 'border-transparent'}">
+            `).join('');
+        }
+    }
+
+    /* ── 사진 추가 ─── */
+    function setupPhotoUpload(inputId) {
+        document.getElementById(inputId).addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            showToast('📷 사진 업로드 중...');
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const res = await apiFetch(`/fish-logs/${LOG_ID}/photos`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (res && res.ok) {
+                showToast('✅ 사진이 추가되었습니다. AI 분석 중...');
+                setTimeout(() => loadDetail(), 1500);
+            } else {
+                showToast('❌ 사진 업로드 실패', 'error');
+            }
+        });
+    }
+
+    setupPhotoUpload('addPhotoInput');
+    setupPhotoUpload('addMorePhotoInput');
+
+    /* ── 삭제 ─── */
+    document.getElementById('deleteBtn').addEventListener('click', async () => {
+        if (!confirm('이 낚시 기록을 삭제하시겠습니까?\n(연관된 사진도 모두 삭제됩니다)')) return;
+
+        const res = await apiFetch(`/fish-logs/${LOG_ID}`, { method: 'DELETE' });
+        if (res && res.status === 204) {
+            showToast('🗑️ 기록이 삭제되었습니다.');
+            setTimeout(() => window.location.href = '/logs', 800);
+        } else {
+            showToast('❌ 삭제에 실패했습니다.', 'error');
+        }
+    });
+</script>
+</body>
+</html>

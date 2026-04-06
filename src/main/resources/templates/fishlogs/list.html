@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head th:replace="~{fragments/layout :: headSection('내 낚시 기록')}"></head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- ── 헤더 ─────────────────────────────────────────── -->
+<header class="fixed top-0 left-0 right-0 z-40"
+        style="background: linear-gradient(135deg, #115e59 0%, #0c4a6e 100%);">
+    <div class="max-w-lg mx-auto px-4 h-16 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            <span class="text-2xl">🎣</span>
+            <h1 class="text-xl font-black text-white">FishLog</h1>
+        </div>
+        <div id="userGreeting" class="text-teal-200 text-sm font-medium"></div>
+    </div>
+</header>
+
+<!-- ── 컨텐츠 ─────────────────────────────────────────── -->
+<main class="max-w-lg mx-auto px-4 pt-20 pb-24">
+
+    <!-- 상단 타이틀 -->
+    <div class="flex items-center justify-between mb-4">
+        <div>
+            <h2 class="text-2xl font-black text-gray-900">내 낚시 기록</h2>
+            <p id="countBadge" class="text-gray-500 text-sm mt-0.5"></p>
+        </div>
+        <a href="/logs/new"
+           class="flex items-center gap-1 bg-ocean-700 text-white px-4 py-2.5 rounded-xl font-bold text-sm shadow-md">
+            <span class="text-lg">＋</span> 새 기록
+        </a>
+    </div>
+
+    <!-- 로딩 스켈레톤 -->
+    <div id="skeleton" class="space-y-3">
+        <div th:each="i : ${#numbers.sequence(1,4)}"
+             class="bg-white rounded-2xl h-24 animate-pulse shadow-sm"></div>
+    </div>
+
+    <!-- 기록 목록 -->
+    <div id="logList" class="space-y-3 page-enter hidden"></div>
+
+    <!-- 빈 상태 -->
+    <div id="emptyState" class="hidden text-center py-20">
+        <div class="text-7xl mb-4">🐟</div>
+        <h3 class="text-xl font-black text-gray-600 mb-2">아직 기록이 없어요</h3>
+        <p class="text-gray-400 mb-6 text-base">첫 번째 낚시 기록을 남겨보세요!</p>
+        <a href="/logs/new"
+           class="inline-flex items-center gap-2 bg-ocean-700 text-white px-8 py-4 rounded-2xl font-black text-lg shadow-lg">
+            🎣 첫 기록 추가하기
+        </a>
+    </div>
+
+    <!-- 더보기 버튼 -->
+    <button id="loadMoreBtn"
+            class="hidden w-full py-4 mt-3 bg-white border-2 border-gray-200 text-gray-600
+                   rounded-2xl font-bold text-base active:bg-gray-50">
+        더 보기 ↓
+    </button>
+
+</main>
+
+<th:block th:replace="~{fragments/layout :: bottomNav}"></th:block>
+
+<script>
+    let currentPage = 0;
+    const PAGE_SIZE = 20;
+    let hasMore = false;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        if (!requireAuth()) return;
+
+        const user = Auth.getUser();
+        if (user) {
+            document.getElementById('userGreeting').textContent = `${user.username} 님`;
+        }
+
+        await loadLogs(0);
+
+        document.getElementById('loadMoreBtn').addEventListener('click', async () => {
+            await loadLogs(currentPage + 1);
+        });
+    });
+
+    async function loadLogs(page) {
+        if (page === 0) {
+            document.getElementById('skeleton').classList.remove('hidden');
+            document.getElementById('logList').classList.add('hidden');
+        }
+
+        const res = await apiFetch(`/fish-logs?page=${page}&size=${PAGE_SIZE}`);
+        if (!res) return;
+
+        const data = await res.json();
+
+        document.getElementById('skeleton').classList.add('hidden');
+
+        if (page === 0 && data.content.length === 0) {
+            document.getElementById('emptyState').classList.remove('hidden');
+            return;
+        }
+
+        const list = document.getElementById('logList');
+        list.classList.remove('hidden');
+
+        if (page === 0) list.innerHTML = '';
+
+        data.content.forEach(log => {
+            list.insertAdjacentHTML('beforeend', renderCard(log));
+        });
+
+        currentPage = page;
+        hasMore = !data.last;
+
+        const loadMoreBtn = document.getElementById('loadMoreBtn');
+        loadMoreBtn.classList.toggle('hidden', !hasMore);
+
+        if (page === 0) {
+            const total = data.totalElements;
+            document.getElementById('countBadge').textContent = `총 ${total}개의 기록`;
+        }
+    }
+
+    function renderCard(log) {
+        const fishName = escapeHtml(log.fishName || '어종 미입력');
+        const title    = escapeHtml(log.title);
+        const date     = formatDate(log.catchDate);
+        const location = log.location ? `📍 ${escapeHtml(log.location)}` : '';
+        const size     = log.lengthCm ? `📏 ${log.lengthCm}cm` : '';
+        const waterEmoji = log.waterType === 'SEA' ? '🌊' : '🏞️';
+
+        return `
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 card-tap cursor-pointer"
+             onclick="location.href='/logs/${log.id}'">
+            <div class="flex items-center gap-4">
+                <!-- 어종 아이콘 -->
+                <div class="w-14 h-14 bg-ocean-50 rounded-2xl flex items-center justify-center
+                            text-3xl flex-shrink-0 border border-ocean-100">
+                    ${waterEmoji}
+                </div>
+
+                <!-- 정보 -->
+                <div class="flex-1 min-w-0">
+                    <h3 class="text-lg font-black text-gray-900 truncate">${title}</h3>
+                    <p class="text-ocean-700 font-bold text-base">${fishName}</p>
+                    <div class="flex items-center flex-wrap gap-x-3 gap-y-0.5 mt-1 text-sm text-gray-400">
+                        <span>📅 ${date}</span>
+                        ${location ? `<span class="truncate">${location}</span>` : ''}
+                        ${size ? `<span>${size}</span>` : ''}
+                    </div>
+                </div>
+
+                <!-- 화살표 -->
+                <div class="text-gray-300 text-2xl font-light flex-shrink-0">›</div>
+            </div>
+        </div>`;
+    }
+</script>
+</body>
+</html>
