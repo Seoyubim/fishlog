@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "낚시 통계", description = "개인 낚시 활동 연간 통계 리포트 API")
 @RestController
-@RequestMapping("/api/v1/users/{userId}/stats")
+@RequestMapping("/api/v1/stats")
 @RequiredArgsConstructor
 public class StatsController {
 
@@ -25,7 +25,7 @@ public class StatsController {
     @Operation(
             summary = "연간 낚시 통계 조회",
             description = """
-                    특정 사용자의 연간 낚시 통계 리포트를 조회합니다.
+                    로그인한 사용자의 연간 낚시 통계 리포트를 조회합니다.
 
                     **포함 정보:**
                     - 연간 총 포획 마릿수
@@ -37,15 +37,13 @@ public class StatsController {
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공"),
-            @ApiResponse(responseCode = "404", description = "해당 ID의 사용자 없음",
+            @ApiResponse(responseCode = "401", description = "인증 필요",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     @GetMapping("/annual")
     public ResponseEntity<FishingStatsResponse> getAnnualStats(
-            @Parameter(description = "사용자 ID", example = "1", required = true)
-            @PathVariable Long userId,
             @Parameter(description = "집계 연도 (미입력 시 현재 연도)", example = "2025")
             @RequestParam(required = false) Integer year) {
-        return ResponseEntity.ok(statsService.getAnnualStats(userId, year));
+        return ResponseEntity.ok(statsService.getAnnualStats(year));
     }
 }

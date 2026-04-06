@@ -13,10 +13,6 @@ import java.time.LocalDate;
 @Schema(description = "낚시 기록 생성 요청")
 public record FishLogCreateRequest(
 
-        @Schema(description = "사용자 ID", example = "1")
-        @NotNull(message = "userId는 필수입니다")
-        Long userId,
-
         @Schema(description = "기록 제목", example = "한강에서 잡은 첫 메기!")
         @NotBlank(message = "제목은 필수입니다")
         String title,

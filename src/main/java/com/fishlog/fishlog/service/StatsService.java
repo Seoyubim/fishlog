@@ -9,6 +9,7 @@ import com.fishlog.fishlog.exception.UserNotFoundException;
 import com.fishlog.fishlog.repository.FishLogRepository;
 import com.fishlog.fishlog.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,13 +24,9 @@ public class StatsService {
     private final FishLogRepository fishLogRepository;
     private final UserRepository userRepository;
 
-    /**
-     * 특정 사용자의 연간 낚시 통계를 집계해 반환한다.
-     *
-     * @param userId 대상 사용자 ID
-     * @param year   집계 연도 (null이면 현재 연도)
-     */
-    public FishingStatsResponse getAnnualStats(Long userId, Integer year) {
+    public FishingStatsResponse getAnnualStats(Integer year) {
+        Long userId = getCurrentUserId();
+
         if (!userRepository.existsById(userId)) {
             throw new UserNotFoundException(userId);
         }
@@ -74,6 +71,10 @@ public class StatsService {
                 fishRanking,
                 waterTypeStats
         );
+    }
+
+    private Long getCurrentUserId() {
+        return (Long) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }
 
     private Double roundScale2(Double value) {
