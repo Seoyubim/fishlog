@@ -20,7 +20,7 @@ import java.util.Map;
 /**
  * Google Gemini Vision API를 이용한 어종 분류 구현체.
  *
- * <p>사용 모델: gemini-1.5-flash (무료 티어 제공)
+ * <p>사용 모델: gemini-2.5-flash (무료 티어 제공)
  * <p>API 엔드포인트:
  * POST https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api-key}
  */
@@ -35,7 +35,7 @@ public class GeminiAiFishClassificationClient implements AiFishClassificationCli
     @Value("${ai.gemini.api-key}")
     private String apiKey;
 
-    @Value("${ai.gemini.model:gemini-1.5-flash}")
+    @Value("${ai.gemini.model:gemini-2.5-flash}")
     private String model;
 
     private static final String PROMPT =
