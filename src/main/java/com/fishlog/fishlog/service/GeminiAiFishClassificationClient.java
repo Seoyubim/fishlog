@@ -39,9 +39,13 @@ public class GeminiAiFishClassificationClient implements AiFishClassificationCli
     private String model;
 
     private static final String PROMPT =
-            "이 사진 속 물고기의 어종 이름을 한국어로 알려주고, 확신도를 0.0~1.0 사이의 숫자로 " +
-            "JSON 형식({ \"fish_name\": \"...\", \"confidence\": ... })으로만 대답해 줘. " +
-            "물고기가 없으면 { \"fish_name\": \"알 수 없음\", \"confidence\": 0.0 }으로 응답해 줘.";
+            "당신은 어류 전문가입니다. 이 사진 속 물고기의 어종을 반드시 한국어로 식별해 주세요.\n" +
+            "규칙:\n" +
+            "1. 물고기가 보이면 반드시 어종명을 추측해서 답하세요. 확신이 없어도 가장 가능성 높은 어종을 답하세요.\n" +
+            "2. 확신도가 낮더라도(0.3 이상이면) 어종명을 반드시 명시하세요.\n" +
+            "3. 사진이 완전히 흐릿하거나, 물고기가 아예 없는 경우에만 fish_name을 \"알 수 없음\"으로 하세요.\n" +
+            "4. 응답은 반드시 JSON 형식({ \"fish_name\": \"...\", \"confidence\": ... })으로만 하세요. 다른 텍스트는 절대 포함하지 마세요.\n" +
+            "예시: { \"fish_name\": \"광어\", \"confidence\": 0.85 }";
 
     @Override
     public AiClassificationResult classify(MultipartFile imageFile) {
@@ -122,12 +126,13 @@ public class GeminiAiFishClassificationClient implements AiFishClassificationCli
                     .path("parts").get(0)
                     .path("text").asText();
 
+            log.debug("Gemini 원문 응답: {}", text);
             String jsonText = stripMarkdownCodeBlock(text);
             AiClassificationResult result = objectMapper.readValue(jsonText, AiClassificationResult.class);
             log.info("Gemini 분류 완료: fishName={}, confidence={}", result.fishName(), result.confidence());
             return result;
         } catch (Exception e) {
-            log.warn("Gemini 응답 파싱 실패 (응답 원문 확인 필요): {}", e.getMessage());
+            log.warn("Gemini 응답 파싱 실패 - 원문: {}, 오류: {}", responseJson, e.getMessage());
             return null;
         }
     }
