@@ -6,7 +6,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 /**
  * AI 어종 분류 클라이언트 인터페이스.
- * 현재 구현체: {@link GeminiAiFishClassificationClient}
+ * 현재 구현체: {@link FishialAiFishClassificationClient}
  */
 public interface AiFishClassificationClient {
 

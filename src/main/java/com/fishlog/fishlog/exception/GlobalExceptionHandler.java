@@ -12,6 +12,19 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    /**
+     * Fishial.AI API 호출 실패 (크레딧 부족, 인증 오류, 서버 오류 등).
+     * 명시적 재분류 요청({@code POST /classify})에서만 이 핸들러에 도달한다.
+     * 자동 분류(사진 업로드 시)는 PhotoService에서 ERROR 레벨 로그로 처리 후 업로드를 성공시킨다.
+     */
+    @ExceptionHandler(AiServiceException.class)
+    public ResponseEntity<ErrorResponse> handleAiService(AiServiceException e) {
+        log.error("AI 서비스 오류 발생 [statusCode={}]: {}", e.getStatusCode(), e.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                .body(ErrorResponse.of(HttpStatus.BAD_GATEWAY.value(),
+                        "[AI 서비스 오류] " + e.getMessage()));
+    }
+
     @ExceptionHandler(FishLogNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleFishLogNotFound(FishLogNotFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)

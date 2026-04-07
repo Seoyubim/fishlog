@@ -5,6 +5,7 @@ import com.fishlog.fishlog.domain.FishLog;
 import com.fishlog.fishlog.domain.FishPhoto;
 import com.fishlog.fishlog.dto.response.AiClassificationResult;
 import com.fishlog.fishlog.dto.response.FishPhotoResponse;
+import com.fishlog.fishlog.exception.AiServiceException;
 import com.fishlog.fishlog.exception.FishLogNotFoundException;
 import com.fishlog.fishlog.exception.PhotoNotFoundException;
 import com.fishlog.fishlog.repository.FishLogRepository;
@@ -105,6 +106,10 @@ public class PhotoService {
         try {
             AiClassificationResult result = aiClient.classify(file);
             applyClassificationResult(fishLog, photo, result);
+        } catch (AiServiceException e) {
+            // Fishial.AI API 자체 오류 (크레딧 부족, 인증 실패 등) — 운영자가 즉시 인식할 수 있도록 ERROR 레벨로 기록
+            log.error("Fishial.AI 서비스 오류로 자동 분류 실패 [photoId={}, fishLogId={}, statusCode={}]: {}",
+                    photo.getId(), fishLog.getId(), e.getStatusCode(), e.getMessage());
         } catch (Exception e) {
             log.warn("AI 분류 중 예외 발생 (무시): photoId={}, error={}", photo.getId(), e.getMessage());
         }
