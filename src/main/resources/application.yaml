@@ -34,7 +34,7 @@ jwt:
   expiration-ms: ${JWT_EXPIRATION_MS:86400000}
 
 ai:
-  gemini:
-    base-url: ${AI_GEMINI_BASE_URL:https://generativelanguage.googleapis.com}
-    api-key: ${AI_GEMINI_API_KEY}
-    model: ${AI_GEMINI_MODEL:gemini-2.5-flash}
+  fishial:
+    base-url: ${AI_FISHIAL_BASE_URL:https://api.fishial.ai}
+    client-id: ${AI_FISHIAL_CLIENT_ID}
+    client-secret: ${AI_FISHIAL_CLIENT_SECRET}

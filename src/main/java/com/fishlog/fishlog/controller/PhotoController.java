@@ -19,7 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
-@Tag(name = "사진 & AI 분류", description = "낚시 사진 업로드 및 Gemini AI 어종 분류 API")
+@Tag(name = "사진 & AI 분류", description = "낚시 사진 업로드 및 Fishial.AI 어종 분류 API")
 @RestController
 @RequestMapping("/api/v1/fish-logs/{fishLogId}/photos")
 @RequiredArgsConstructor
@@ -30,7 +30,7 @@ public class PhotoController {
     @Operation(
             summary = "사진 업로드 + AI 어종 자동 분류",
             description = """
-                    사진을 업로드하고 Google Gemini Vision API로 어종을 자동 분류합니다.
+                    사진을 업로드하고 Fishial.AI API로 어종을 자동 분류합니다.
 
                     - 지원 형식: JPEG, PNG, GIF, WEBP (최대 10MB)
                     - AI 분류 실패 시에도 사진 업로드는 성공으로 처리됩니다.
@@ -67,10 +67,12 @@ public class PhotoController {
 
     @Operation(
             summary = "AI 어종 재분류",
-            description = "이미 저장된 사진에 대해 Gemini AI 어종 분류를 다시 시도합니다. AI가 처음에 실패했을 때 사용하세요."
+            description = "이미 저장된 사진에 대해 Fishial.AI 어종 분류를 다시 시도합니다. AI가 처음에 실패했을 때 사용하세요."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "재분류 성공 (분류 실패 시에도 200 반환, aiClassified 필드로 확인)"),
+            @ApiResponse(responseCode = "200", description = "재분류 성공"),
+            @ApiResponse(responseCode = "502", description = "Fishial.AI API 오류 (크레딧 부족, 인증 실패 등)",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "404", description = "해당 사진 없음",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
