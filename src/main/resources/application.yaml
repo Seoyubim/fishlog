@@ -35,6 +35,10 @@ jwt:
 
 ai:
   fishial:
-    base-url: ${AI_FISHIAL_BASE_URL:https://api.fishial.ai}
+    base-url: ${AI_FISHIAL_BASE_URL:https://api-recognition.fishial.ai}
     client-id: ${AI_FISHIAL_CLIENT_ID}
     client-secret: ${AI_FISHIAL_CLIENT_SECRET}
+  gemini:
+    base-url: ${AI_GEMINI_BASE_URL:https://generativelanguage.googleapis.com}
+    api-key: ${AI_GEMINI_API_KEY}
+    model: ${AI_GEMINI_MODEL:gemini-2.5-flash}

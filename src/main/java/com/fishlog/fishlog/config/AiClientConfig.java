@@ -8,13 +8,23 @@ import org.springframework.web.client.RestClient;
 @Configuration
 public class AiClientConfig {
 
-    @Value("${ai.fishial.base-url:https://api.fishial.ai}")
-    private String baseUrl;
+    @Value("${ai.fishial.base-url:https://api-recognition.fishial.ai}")
+    private String fishialBaseUrl;
+
+    @Value("${ai.gemini.base-url:https://generativelanguage.googleapis.com}")
+    private String geminiBaseUrl;
 
     @Bean
     public RestClient fishialRestClient() {
         return RestClient.builder()
-                .baseUrl(baseUrl)
+                .baseUrl(fishialBaseUrl)
+                .build();
+    }
+
+    @Bean
+    public RestClient geminiRestClient() {
+        return RestClient.builder()
+                .baseUrl(geminiBaseUrl)
                 .build();
     }
 }
